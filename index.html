@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>Greenery Infill 有限公司 - 補錄工具</title>
+    <title>Greenery Infill - 補錄工具 (長期監聽版)</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
@@ -16,19 +16,18 @@
         input, select, button { width: 100%; padding: 10px; margin-top: 4px; border: 1px solid #cbd5e0; border-radius: 8px; font-size: 15px; }
         .row { display: flex; gap: 8px; flex-wrap: wrap; }
         .row > div { flex: 1; min-width: 100px; }
-        .btn-save { background-color: #e67e22; color: white; font-weight: bold; border: none; margin-top: 12px; cursor: pointer; }
-        .btn-save:disabled { background-color: #cbd5e0; cursor: not-allowed; }
-        .btn-copy { background-color: #805ad5; color: white; font-weight: bold; border: none; margin-top: 4px; font-size: 13px; cursor: pointer; }
-        .btn-copy-yesterday { background-color: #2b6cb0; color: white; font-weight: bold; border: none; margin-top: 4px; font-size: 13px; cursor: pointer; }
-        .btn-export { background-color: #2f855a; color: white; font-weight: bold; border: none; margin-top: 8px; cursor: pointer; }
+        .btn-save { background-color: #e67e22; color: white; font-weight: bold; border: none; margin-top: 12px; }
+        .btn-copy { background-color: #805ad5; color: white; font-weight: bold; border: none; margin-top: 4px; font-size: 13px; }
+        .btn-copy-yesterday { background-color: #2b6cb0; color: white; font-weight: bold; border: none; margin-top: 4px; font-size: 13px; }
+        .btn-export { background-color: #2f855a; color: white; font-weight: bold; border: none; margin-top: 8px; }
         .btn-del { background-color: #fed7d7; color: #9b2c2c; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; width:auto; }
         .btn-edit { background-color: #bee3f8; color: #2a69ac; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; width:auto; }
         .btn-nav { background-color: #e2e8f0; color: #2d3748; border: none; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: bold; flex: 1; cursor: pointer; }
         .btn-mode { background-color: #4a5568; color: white; font-weight: bold; border: none; padding: 8px; border-radius: 8px; font-size: 14px; cursor: pointer; flex:1; }
         .btn-mode.active { background-color: #e67e22; }
-        .btn-search { background-color: #805ad5; color: white; font-weight: bold; border: none; margin-top: 8px; cursor: pointer; }
-        .btn-refresh { background-color: #38a169; color: white; font-weight: bold; border: none; margin-top: 4px; font-size: 13px; cursor: pointer; }
-        .btn-clear { background-color: #a0aec0; color: white; font-weight: bold; border: none; margin-top: 4px; font-size: 13px; cursor: pointer; }
+        .btn-search { background-color: #805ad5; color: white; font-weight: bold; border: none; margin-top: 8px; }
+        .btn-refresh { background-color: #38a169; color: white; font-weight: bold; border: none; margin-top: 4px; font-size: 13px; }
+        .btn-clear { background-color: #a0aec0; color: white; font-weight: bold; border: none; margin-top: 4px; font-size: 13px; }
         table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 11px; }
         th, td { border: 1px solid #e2e8f0; padding: 5px 2px; text-align: center; }
         th { background-color: #edf2f7; color: #2d3748; }
@@ -59,9 +58,9 @@
 </head>
 <body>
 
-<h2>Greenery Infill 有限公司<br><small style="font-size:14px;">📋 補錄工具 (穩定版)</small></h2>
-<div class="sub-title">🕒 手動輸入 · 㩒「重新整理」載入數據</div>
-<div class="cloud-status" id="cloudStatus">☁️ 狀態：未載入</div>
+<h2>Greenery Infill 有限公司<br><small style="font-size:14px;">📋 補錄工具 (長期監聽版)</small></h2>
+<div class="sub-title">🔄 自動更新 · 連線失敗會自動重試</div>
+<div class="cloud-status" id="cloudStatus">☁️ 狀態：連線中...</div>
 
 <div class="card">
     <div class="row" style="margin-bottom:6px;">
@@ -78,7 +77,7 @@
             <input type="date" id="recordDate" onchange="switchDate()">
             <button class="btn-nav" onclick="changeDate(1)">▶</button>
         </div>
-        <button class="btn-refresh" onclick="switchDate()">🔄 重新整理今日數據</button>
+        <button class="btn-refresh" onclick="forceRefresh()">🔄 手動重新整理</button>
 
         <div class="row">
             <div><label>👤 司機</label><input type="text" id="driverName" placeholder="姓名"></div>
@@ -100,12 +99,12 @@
             <button class="btn-copy" onclick="copyLastRecord()">📋 複製上一個</button>
             <button class="btn-clear" onclick="clearForm()">🗑️ 清空</button>
         </div>
-        <button class="btn-save" id="saveBtn" onclick="saveRecord()">💾 補錄此記錄</button>
+        <button class="btn-save" id="saveBtn" onclick="saveRecord()">💾 補錄 / 更新</button>
     </div>
 
     <!-- 查閱模式 -->
     <div id="viewSection" class="hidden">
-        <div style="background:#ebf8ff; padding:8px; border-radius:8px; margin-bottom:10px; text-align:center; font-weight:bold; color:#2b6cb0;">🔍 查閱記錄</div>
+        <div style="background:#ebf8ff; padding:8px; border-radius:8px; margin-bottom:10px; text-align:center;">🔍 查閱記錄</div>
         <div class="row">
             <div><label>👤 司機</label><input type="text" id="viewDriverName" placeholder="全部"></div>
             <div><label>🔄 更次</label>
@@ -140,7 +139,7 @@
 
 <script>
 // ============================================================
-//  🔥 Firebase 設定
+//  🔥 Firebase 設定 (你提供嘅新設定)
 // ============================================================
 const firebaseConfig = {
     apiKey: "AIzaSyBB3ZVmlaMutVlRccnPy1NB4Xd2NqTc4H8",
@@ -167,22 +166,14 @@ let currentMode = 'edit';
 let viewRange = 'day';
 let viewResult = [];
 let hourlyRate = 75;
+let listenerRef = null;        // 用嚟記錄監聽嘅 reference
+let isListening = false;
 
 // ============================================================
 //  輔助函數
 // ============================================================
 function $(id) { return document.getElementById(id); }
-
-function formatDateStr(dateObj) {
-    const y = dateObj.getFullYear();
-    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-    const d = String(dateObj.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-}
-
-function today() {
-    return formatDateStr(new Date());
-}
+function today() { return new Date().toISOString().split('T')[0]; }
 
 function showStatus(msg, err = false) {
     const el = $('cloudStatus');
@@ -190,39 +181,29 @@ function showStatus(msg, err = false) {
     el.className = 'cloud-status' + (err ? ' error' : '');
 }
 
-function makeKey(driver, shift) { 
-    return (driver + '_' + shift).replace(/[.#$[\]]/g, '_'); 
-}
+function makeKey(driver, shift) { return driver + '_' + shift; }
 
 function calcHours(checkIn, checkOut) {
     if (!checkIn || !checkOut) return { hours: 0, salary: 0 };
     const [h1, m1] = checkIn.split(':').map(Number);
     const [h2, m2] = checkOut.split(':').map(Number);
-    let diff = (h2 * 60 + m2) - (h1 * 60 + m1);
-    if (diff < 0) diff += 1440; // 跨日處理
-    const hours = Math.round((diff / 60) * 10) / 10;
+    let diff = (h2*60 + m2) - (h1*60 + m1);
+    if (diff < 0) diff += 1440;
+    const hours = Math.round((diff/60)*10)/10;
     const salary = Math.round(hours * hourlyRate * 100) / 100;
     return { hours, salary };
 }
 
 function loadHourlyRate() {
     const saved = localStorage.getItem('hourlyRate_backfill');
-    if (saved) { 
-        const v = parseFloat(saved); 
-        if (!isNaN(v) && v > 0) hourlyRate = v; 
-    }
+    if (saved) { const v=parseFloat(saved); if(!isNaN(v)&&v>0) hourlyRate=v; }
     $('hourlyRate').value = hourlyRate;
 }
-
 $('hourlyRate').addEventListener('change', function() {
-    const v = parseFloat(this.value);
-    if (!isNaN(v) && v > 0) { 
-        hourlyRate = v; 
-        localStorage.setItem('hourlyRate_backfill', String(v)); 
-    }
+    const v=parseFloat(this.value);
+    if(!isNaN(v)&&v>0) { hourlyRate=v; localStorage.setItem('hourlyRate_backfill', String(v)); }
 });
 
-// 記住更次
 const savedShift = localStorage.getItem('rememberedShift_backfill') || '早更';
 $('shiftType').value = savedShift;
 $('shiftType').addEventListener('change', function() {
@@ -234,48 +215,88 @@ $('shiftType').addEventListener('change', function() {
 // ============================================================
 function setMode(mode) {
     currentMode = mode;
-    $('modeEditBtn').classList.toggle('active', mode === 'edit');
-    $('modeViewBtn').classList.toggle('active', mode === 'view');
-    $('editSection').classList.toggle('hidden', mode !== 'edit');
-    $('viewSection').classList.toggle('hidden', mode !== 'view');
+    $('modeEditBtn').classList.toggle('active', mode==='edit');
+    $('modeViewBtn').classList.toggle('active', mode==='view');
+    $('editSection').classList.toggle('hidden', mode!=='edit');
+    $('viewSection').classList.toggle('hidden', mode!=='view');
     const ind = $('modeIndicator');
-    if (mode === 'edit') {
-        ind.className = 'mode-indicator edit';
-        ind.innerText = '✏️ 補錄模式';
-        switchDate();
+    if (mode==='edit') {
+        ind.className='mode-indicator edit';
+        ind.innerText='✏️ 補錄模式 (自動更新)';
+        switchDate();   // 開始監聽
     } else {
-        ind.className = 'mode-indicator view';
-        ind.innerText = '🔍 查閱模式';
+        ind.className='mode-indicator view';
+        ind.innerText='🔍 查閱模式';
+        // 停止監聽節省流量
+        stopListening();
     }
-    clearForm();
+    editingKey = null;
+    $('saveBtn').textContent = '💾 補錄此記錄';
 }
 
 // ============================================================
-//  補錄模式：讀取數據
+//  長期監聽 (用 on('value'))
+// ============================================================
+function startListening(date) {
+    stopListening();  // 先停舊嘅
+    if (!date) return;
+    currentDate = date;
+    showStatus('☁️ 連線中...');
+    const ref = db.ref('attendance/' + date);
+    listenerRef = ref;
+    isListening = true;
+
+    // 用 on('value') 長期監聽
+    ref.on('value', (snapshot) => {
+        if (!isListening) return;  // 如果已經停咗就唔處理
+        const data = snapshot.val();
+        currentDayData = data || {};
+        renderTable(currentDayData);
+        showStatus('☁️ 已連線 · 自動更新中');
+    }, (error) => {
+        // 錯誤回調
+        showStatus('⚠️ 連線中斷: ' + error.message, true);
+        // 自動重試 (5秒後)
+        setTimeout(() => {
+            if (isListening) {
+                showStatus('☁️ 重新連線中...');
+                startListening(currentDate);  // 重新建立監聽
+            }
+        }, 5000);
+    });
+}
+
+function stopListening() {
+    if (listenerRef) {
+        listenerRef.off('value');
+        listenerRef = null;
+    }
+    isListening = false;
+}
+
+// ============================================================
+//  日期切換 (重新監聽)
 // ============================================================
 function switchDate() {
     const date = $('recordDate').value;
     if (!date) return;
     currentDate = date;
-    showStatus('☁️ 載入中...');
-    db.ref('attendance/' + date).once('value').then(snapshot => {
-        const data = snapshot.val();
-        currentDayData = data || {};
-        renderTable(currentDayData);
-        showStatus('☁️ 已載入 ' + date + ' 嘅數據');
-    }).catch(err => {
-        showStatus('⚠️ 載入失敗: ' + err.message, true);
-        alert('無法讀取數據，請檢查網絡或 Firebase 設定。\n' + err.message);
-    });
+    startListening(date);
+}
+
+function forceRefresh() {
+    // 手動強制重新整理
+    if (currentDate) {
+        startListening(currentDate);
+    } else {
+        switchDate();
+    }
 }
 
 function changeDate(delta) {
-    const currentVal = $('recordDate').value;
-    if (!currentVal) return;
-    const parts = currentVal.split('-').map(Number);
-    const d = new Date(parts[0], parts[1] - 1, parts[2]);
+    const d = new Date($('recordDate').value);
     d.setDate(d.getDate() + delta);
-    $('recordDate').value = formatDateStr(d);
+    $('recordDate').value = d.toISOString().split('T')[0];
     switchDate();
 }
 
@@ -283,15 +304,12 @@ function changeDate(delta) {
 //  補錄模式：複製、儲存、刪除、編輯
 // ============================================================
 function copyYesterday() {
-    if (currentMode !== 'edit') { alert('請轉補錄模式'); return; }
+    if (currentMode!=='edit') { alert('請轉補錄模式'); return; }
     const driver = $('driverName').value.trim();
     if (!driver) { alert('請輸入司機姓名'); return; }
-    
-    const parts = currentDate.split('-').map(Number);
-    const d = new Date(parts[0], parts[1] - 1, parts[2]);
-    d.setDate(d.getDate() - 1);
-    const yest = formatDateStr(d);
-    
+    const d = new Date(currentDate);
+    d.setDate(d.getDate()-1);
+    const yest = d.toISOString().split('T')[0];
     db.ref('attendance/' + yest).once('value').then(snap => {
         const data = snap.val();
         if (!data) { alert('前一日無記錄'); return; }
@@ -313,7 +331,7 @@ function copyYesterday() {
 }
 
 function copyLastRecord() {
-    if (currentMode !== 'edit') { alert('請轉補錄模式'); return; }
+    if (currentMode!=='edit') { alert('請轉補錄模式'); return; }
     if (!lastRecord) { alert('未有記錄可複製'); return; }
     if ($('driverName').value.trim() && !confirm('覆蓋當前司機？')) return;
     $('driverName').value = lastRecord.driverName;
@@ -328,62 +346,56 @@ function clearForm() {
     $('remark').value = '';
     editingKey = null;
     $('saveBtn').textContent = '💾 補錄此記錄';
+    $('driverName').focus();
 }
 
 function saveRecord() {
-    if (currentMode !== 'edit') { alert('請轉補錄模式'); return; }
+    if (currentMode!=='edit') { alert('請轉補錄模式'); return; }
     const driver = $('driverName').value.trim();
     const shift = $('shiftType').value;
     const checkIn = $('checkInTime').value;
     const checkOut = $('checkOutTime').value;
     const remark = $('remark').value.trim();
-
     if (!driver) { alert('請輸入司機姓名'); return; }
     if (!checkIn) { alert('請輸入報到時間'); return; }
     if (!checkOut) { alert('請輸入簽退時間'); return; }
-
     const { hours, salary } = calcHours(checkIn, checkOut);
+    if (hours === 0) { alert('工時為0，請檢查時間'); return; }
     const key = makeKey(driver, shift);
-
     if (editingKey !== key && currentDayData[key]) {
         if (!confirm('記錄已存在，要覆蓋嗎？')) return;
     }
-
     const record = { driverName: driver, shift, checkIn, checkOut, hours, salary, remark };
+    const ref = db.ref('attendance/' + currentDate + '/' + key);
     const btn = $('saveBtn');
     btn.disabled = true;
     btn.textContent = '⏳ 儲存中...';
-
-    // 如果編輯時更改了 Key，先移除舊 Key
-    const deleteOldPromise = (editingKey && editingKey !== key)
-        ? db.ref('attendance/' + currentDate + '/' + editingKey).remove()
-        : Promise.resolve();
-
-    deleteOldPromise.then(() => {
-        return db.ref('attendance/' + currentDate + '/' + key).set(record);
-    }).then(() => {
+    ref.set(record).then(() => {
         lastRecord = { driverName: driver, shift };
-        clearForm();
+        $('checkInTime').value = '';
+        $('checkOutTime').value = '';
+        $('remark').value = '';
+        editingKey = null;
+        btn.textContent = '💾 補錄此記錄';
         showStatus('✅ 儲存成功！');
-        switchDate();
+        // 儲存後監聽會自動更新
     }).catch(err => {
         alert('儲存失敗: ' + err.message);
         showStatus('⚠️ 儲存失敗', true);
     }).finally(() => {
         btn.disabled = false;
-        if (!editingKey) btn.textContent = '💾 補錄此記錄';
+        if (btn.textContent === '⏳ 儲存中...') btn.textContent = '💾 補錄此記錄';
     });
 }
 
 function deleteRecord(key) {
-    if (!confirm('確定刪除記錄嗎？')) return;
+    if (!confirm('刪除 ' + key + ' ？')) return;
     db.ref('attendance/' + currentDate + '/' + key).remove()
-        .then(() => switchDate())
         .catch(err => alert('刪除失敗: ' + err.message));
 }
 
 function editRecord(key) {
-    if (currentMode !== 'edit') { alert('請轉補錄模式'); return; }
+    if (currentMode!=='edit') { alert('請轉補錄模式'); return; }
     const r = currentDayData[key];
     if (!r) { alert('記錄不存在'); return; }
     $('driverName').value = r.driverName;
@@ -405,21 +417,20 @@ function renderTable(data) {
     let html = '';
     if (!keys.length) {
         html = '<tr><td colspan="9">暫無記錄</td></tr>';
-        $('daySummary').innerHTML = `總記錄：0 | 總工時：0h | 總人工：HK$0`;
     } else {
         let totalHours = 0, totalSalary = 0;
         keys.forEach(k => {
             const r = data[k];
-            totalHours += Number(r.hours) || 0;
-            totalSalary += Number(r.salary) || 0;
+            totalHours += r.hours || 0;
+            totalSalary += r.salary || 0;
             html += `<tr>
                 <td>${currentDate}</td>
                 <td>${r.shift}</td>
                 <td><strong>${r.driverName}</strong></td>
                 <td>${r.checkIn || '-'}</td>
                 <td>${r.checkOut || '-'}</td>
-                <td>${r.hours ? r.hours + 'h' : '-'}</td>
-                <td class="salary-highlight">${r.salary ? 'HK$' + Number(r.salary).toFixed(2) : '-'}</td>
+                <td>${r.hours ? r.hours+'h' : '-'}</td>
+                <td class="salary-highlight">${r.salary ? 'HK$'+r.salary.toFixed(2) : '-'}</td>
                 <td>${r.remark || ''}</td>
                 <td>
                     <button class="btn-edit" onclick="editRecord('${k}')">✏️</button>
@@ -433,22 +444,21 @@ function renderTable(data) {
 }
 
 // ============================================================
-//  查閱模式
+//  查閱模式 (不變)
 // ============================================================
 function setViewRange(range) {
     viewRange = range;
     document.querySelectorAll('.range-selector button').forEach(b => b.classList.remove('active'));
-    $('vRange' + range.charAt(0).toUpperCase() + range.slice(1)).classList.add('active');
-    $('vDayInput').classList.toggle('hidden', range !== 'day');
-    $('vMonthInput').classList.toggle('hidden', range !== 'month');
-    $('vYearInput').classList.toggle('hidden', range !== 'year');
+    document.getElementById('vRange' + range.charAt(0).toUpperCase() + range.slice(1)).classList.add('active');
+    $('vDayInput').classList.toggle('hidden', range!=='day');
+    $('vMonthInput').classList.toggle('hidden', range!=='month');
+    $('vYearInput').classList.toggle('hidden', range!=='year');
 }
 
 function viewQuery() {
     const driver = $('viewDriverName').value.trim();
     const shiftFilter = $('viewShiftFilter').value;
     let start, end;
-
     if (viewRange === 'day') {
         const d = $('viewDayDate').value;
         if (!d) { alert('請選擇日期'); return; }
@@ -457,20 +467,18 @@ function viewQuery() {
         const m = $('viewMonthDate').value;
         if (!m) { alert('請選擇月份'); return; }
         start = m + '-01';
-        const [yearStr, monthStr] = m.split('-');
-        const lastDay = new Date(parseInt(yearStr), parseInt(monthStr), 0).getDate();
-        end = m + '-' + String(lastDay).padStart(2, '0');
+        const last = new Date(parseInt(m.split('-')[0]), parseInt(m.split('-')[1]), 0).getDate();
+        end = m + '-' + String(last).padStart(2,'0');
     } else {
         const y = $('viewYearDate').value;
         if (!y) { alert('請輸入年份'); return; }
         start = y + '-01-01';
         end = y + '-12-31';
     }
-
     showStatus('☁️ 查詢中...');
     db.ref('attendance').once('value').then(snap => {
         const all = snap.val() || {};
-        const dates = Object.keys(all).filter(d => d >= start && d <= end).sort();
+        const dates = Object.keys(all).filter(d => d>=start && d<=end).sort();
         const results = [];
         dates.forEach(d => {
             const day = all[d];
@@ -484,8 +492,8 @@ function viewQuery() {
                     driverName: r.driverName,
                     checkIn: r.checkIn || '-',
                     checkOut: r.checkOut || '-',
-                    hours: Number(r.hours) || 0,
-                    salary: Number(r.salary) || 0,
+                    hours: r.hours || 0,
+                    salary: r.salary || 0,
                     remark: r.remark || ''
                 });
             });
@@ -496,7 +504,7 @@ function viewQuery() {
             html = `<tr><td colspan="9">無符合記錄</td></tr>`;
             $('daySummary').innerHTML = '查詢結果：無資料';
         } else {
-            let th = 0, ts = 0;
+            let th=0, ts=0;
             results.forEach(r => {
                 th += r.hours; ts += r.salary;
                 html += `<tr>
@@ -505,8 +513,8 @@ function viewQuery() {
                     <td><strong>${r.driverName}</strong></td>
                     <td>${r.checkIn}</td>
                     <td>${r.checkOut}</td>
-                    <td>${r.hours ? r.hours + 'h' : '-'}</td>
-                    <td class="salary-highlight">${r.salary ? 'HK$' + r.salary.toFixed(2) : '-'}</td>
+                    <td>${r.hours ? r.hours+'h' : '-'}</td>
+                    <td class="salary-highlight">${r.salary ? 'HK$'+r.salary.toFixed(2) : '-'}</td>
                     <td>${r.remark}</td>
                     <td><button class="btn-del" onclick="viewDeleteRecord('${r.date}','${r.key}')">刪除</button></td>
                 </tr>`;
@@ -523,7 +531,7 @@ function viewQuery() {
 }
 
 function viewDeleteRecord(date, key) {
-    if (!confirm('確定刪除此記錄嗎？')) return;
+    if (!confirm('刪除 ' + key + ' ？')) return;
     db.ref('attendance/' + date + '/' + key).remove()
         .then(() => viewQuery())
         .catch(err => alert('刪除失敗: ' + err.message));
@@ -545,8 +553,8 @@ function exportCSV() {
                 driverName: r.driverName,
                 checkIn: r.checkIn || '-',
                 checkOut: r.checkOut || '-',
-                hours: Number(r.hours) || 0,
-                salary: Number(r.salary) || 0,
+                hours: r.hours || 0,
+                salary: r.salary || 0,
                 remark: r.remark || ''
             });
         });
@@ -557,17 +565,14 @@ function exportCSV() {
         const driver = $('viewDriverName').value.trim() || '全部';
         title = '查詢_' + driver;
     }
-
     let csv = '\uFEFF日期,更次,司機,報到,簽退,時數,人工,備註\n';
-    let th = 0, ts = 0;
+    let th=0, ts=0;
     data.forEach(r => {
         th += r.hours; ts += r.salary;
-        const cleanRemark = String(r.remark).replace(/"/g, '""');
-        csv += `"${r.date}","${r.shift}","${r.driverName}","${r.checkIn}","${r.checkOut}",${r.hours},${r.salary.toFixed(2)},"${cleanRemark}"\n`;
+        csv += `${r.date},${r.shift},${r.driverName},${r.checkIn},${r.checkOut},${r.hours},${r.salary.toFixed(2)},"${r.remark}"\n`;
     });
     csv += `總計,,,,,,${th.toFixed(1)},${ts.toFixed(2)},\n`;
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = title + '.csv';
@@ -583,8 +588,8 @@ window.onload = function() {
     const todayStr = today();
     $('recordDate').value = todayStr;
     $('viewDayDate').value = todayStr;
-    $('viewMonthDate').value = todayStr.substring(0, 7);
-    $('viewYearDate').value = todayStr.substring(0, 4);
+    $('viewMonthDate').value = todayStr.substring(0,7);
+    $('viewYearDate').value = todayStr.substring(0,4);
     loadHourlyRate();
     setMode('edit');
 };
